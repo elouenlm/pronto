@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LADIQ × IPS — Carte de Recherche</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --cream: #f5f0e8;
+    --warm: #e8dfc8;
+    --accent: #c84a1e;
+    --accent2: #2a5c8a;
+    --accent3: #3d7a4f;
+    --gold: #b8860b;
+    --muted: #7a7060;
+    --border: rgba(15,14,12,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Lora', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+  }
+
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    background: var(--warm);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 8px;
+  }
+
+  .version-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 12px 20px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .tab:hover { color: var(--ink); }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .tab:not(.active) .tab-num { background: var(--muted); }
+
+  /* PANELS */
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── PANEL 1: SUJET ── */
+  .subject-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 640px) { .subject-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .card.red::before { background: var(--accent); }
+  .card.blue::before { background: var(--accent2); }
+  .card.green::before { background: var(--accent3); }
+  .card.gold::before { background: var(--gold); }
+
+  .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .card h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+
+  .card p {
+    font-size: 14px;
+    line-height: 1.65;
+    color: #3a3730;
+  }
+
+  .highlight-box {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 28px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .big-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 64px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .highlight-box p {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--warm);
+  }
+
+  .highlight-box strong { color: white; }
+
+  /* IPS Tag */
+  .ips-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent2);
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 14px;
+    margin-top: 12px;
+  }
+
+  .ips-scale {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+
+  .scale-bar {
+    flex: 1;
+    height: 8px;
+    background: linear-gradient(to right, var(--accent), var(--gold), var(--accent3));
+    border-radius: 4px;
+    position: relative;
+  }
+
+  /* ── PANEL 2: PROCESSUS ── */
+  .process-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    gap: 16px;
+    align-items: start;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .step:hover { background: var(--warm); }
+  .step:last-child { border-bottom: none; }
+
+  .step-num {
+    width: 40px;
+    height: 40px;
+    background: var(--ink);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step.highlighted .step-num {
+    background: var(--accent);
+  }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .step-ips {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: white;
+    background: var(--accent2);
+    padding: 3px 8px;
+    white-space: nowrap;
+    align-self: center;
+  }
+
+  .step-detail {
+    grid-column: 2 / -1;
+    background: var(--warm);
+    border-left: 3px solid var(--accent);
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    margin-top: 8px;
+    display: none;
+  }
+
+  .step-detail.open { display: block; animation: fadeIn 0.2s; }
+
+  .crisp-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ── PANEL 3: QUALITÉ ── */
+  .quality-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 640px) { .quality-grid { grid-template-columns: 1fr; } }
+
+  .q-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .q-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px dotted var(--border);
+  }
+
+  .q-item:last-child { border-bottom: none; }
+
+  .q-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .q-name .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .q-formula {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    background: rgba(42,92,138,0.08);
+    padding: 4px 8px;
+    margin-top: 2px;
+  }
+
+  .q-ips {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .meter-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--warm);
+    margin-top: 4px;
+  }
+
+  .meter-fill {
+    height: 100%;
+    background: var(--accent3);
+    transition: width 1s ease;
+  }
+
+  /* ── PANEL 4: DONNÉES ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table th {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--ink);
+    color: var(--cream);
+    border: none;
+  }
+
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .data-table tr:hover td { background: var(--warm); }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    margin: 2px;
+    border-radius: 2px;
+  }
+
+  .tag.open { background: #d4edda; color: #1a5c2a; }
+  .tag.warning { background: #fff3cd; color: #7a5a00; }
+  .tag.danger { background: #fde8e4; color: #8c2010; }
+
+  /* ── PANEL 5: CHECKLIST ── */
+  .checklist-section { margin-bottom: 28px; }
+
+  .checklist-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .check-icon {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .checklist-item:last-child { border-bottom: none; }
+
+  .check-box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--ink);
+    flex-shrink: 0;
+    cursor: pointer;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 12px;
+  }
+
+  .check-box.checked {
+    background: var(--accent3);
+    border-color: var(--accent3);
+    color: white;
+  }
+
+  .progress-bar-wrap {
+    background: var(--warm);
+    height: 6px;
+    margin: 20px 0 28px;
+    position: relative;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent3);
+    transition: width 0.4s ease;
+  }
+
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* FOOTNOTE */
+  .footnote {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .refs a {
+    color: var(--accent2);
+    text-decoration: none;
+  }
+
+  .refs a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <span class="badge">Projet de Recherche — Learning Analytics</span>
+      <h1>LADIQ <span>×</span> IPS</h1>
+      <p class="subtitle">Validation du framework LADIQ sur l'indicateur de Réussite Scolaire</p>
+    </div>
+    <div class="version-tag">
+      Réf. : Djelil & Mandran, 2025<br>
+      Wang & Strong, 1996<br>
+      Batini et al., 2009
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab(0)">① Sujet</button>
+    <button class="tab" onclick="showTab(1)">② Processus LADIQ <span class="tab-num">6</span></button>
+    <button class="tab" onclick="showTab(2)">③ Critères Qualité <span class="tab-num">5</span></button>
+    <button class="tab" onclick="showTab(3)">④ Données Ouvertes</button>
+    <button class="tab" onclick="showTab(4)">⑤ Checklist</button>
+  </div>
+
+  <!-- PANEL 1 -->
+  <div class="panel active" id="panel-0">
+    <div class="highlight-box">
+      <div class="big-num">IPS</div>
+      <div>
+        <p><strong>Indicateur choisi : l'Indice de Position Sociale (IPS)</strong></p>
+        <p>Calculé par la DEPP, l'IPS résume les conditions socio-économiques et culturelles des familles d'élèves à partir des PCS (professions et catégories socio-professionnelles) des parents. Il sert à mesurer les inégalités scolaires entre établissements.</p>
+        <div class="ips-scale">
+          <span>45 (défav.)</span>
+          <div class="scale-bar"></div>
+          <span>185 (fav.)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="subject-grid">
+      <div class="card red">
+        <div class="card-label">Question centrale</div>
+        <h3>Quel est le lien entre le profil socio-économique d'un établissement et son taux d'échec scolaire ?</h3>
+        <p>L'IPS comme proxy du contexte familial → impact sur la réussite mesurée (DNB, taux de passage, résultats PISA…)</p>
+      </div>
+      <div class="card blue">
+        <div class="card-label">Pourquoi l'IPS ?</div>
+        <h3>Un indicateur open data, validé et structuré</h3>
+        <p>Publié sur data.education.gouv.fr depuis 2022. Disponible pour écoles, collèges et lycées. Données annuelles avec rupture méthodologique 2021 → 2022 (à documenter).</p>
+        <div class="ips-tag">🔗 data.education.gouv.fr</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">Enjeu LADIQ</div>
+        <h3>Valider la qualité de l'IPS avec le framework</h3>
+        <p>L'IPS n'a pas été conçu avec LADIQ. L'objectif est d'appliquer rétrospectivement les 5 critères de qualité (données + indicateur) pour mesurer ses forces et limites.</p>
+      </div>
+      <div class="card gold">
+        <div class="card-label">Éléments impactants</div>
+        <h3>Variables qui influencent l'IPS</h3>
+        <p>PCS des parents (déclaratif ↗ erreurs), taux de renseignement des familles, rupture de série 2022, hétérogénéité intra-établissement (écart-type IPS), secteur public vs privé.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 2 -->
+  <div class="panel" id="panel-1">
+    <div class="process-steps">
+
+      <div class="step" onclick="toggleStep(this)">
+        <div class="step-num">01</div>
+        <div>
+          <div class="step-title">Educational Needs Understanding</div>
+          <div class="step-desc">Comprendre les besoins du personnel éducatif — CRISP-DM : Business Understanding</div>
+          <div class="step-detail">
+            <strong>Application à l'IPS :</strong> Quel besoin éducatif justifie l'IPS ? Mesurer les inégalités sociales pour adapter les ressources (allocation différenciée REP/REP+). La question de la tutrice : <em>quel % d'échec scolaire et comment l'IPS l'explique-t-il ?</em>
+            <div class="crisp-label">→ Critère LADIQ : Qualité Contextuelle (l'indicateur répond-il aux attentes des enseignants ?)</div>
+          </div>
+        </div>
+        <div class="step-ips">IPS pertinent ?</div>
+      </div>
+
+      <div class="step highlighted" onclick="toggleStep(this)">
+        <div class="step-num">02</div>
+        <div>
+          <div class="step-title">Data Needs & Production</div>
+          <div class="step-desc">Collecte préventive et adaptation aux données existantes</div>
+          <div class="step-detail">
+            <strong>Données sources IPS :</strong> PCS déclarées par les familles à l'inscription. Table de passage PCS → IPS (41×41 = 1681 couples possibles). Mise à jour 2022 via panel DEPP élèves CP 2011.
+            <br><br>⚠️ <strong>Limite identifiée :</strong> Si les PCS des 2 parents ne sont pas renseignées, l'élève est exclu du calcul IPS depuis 2022.
+            <div class="crisp-label">→ Critère LADIQ : Complétude & Exactitude</div>
+          </div>
+        </div>
+        <div class="step-ips">⚠️ Valeurs manquantes</div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <div class="step-num">03</div>
+        <div>
+          <div class="step-title">Data Diagnostic & Understanding</div>
+          <div class="step-desc">Préparer et comprendre les données, combler les manques, normaliser</div>
+          <div class="step-detail">
+            <strong>À faire pour l'IPS :</strong><br>
+            — Vérifier la complétude (% PCS renseignés par établissement)<br>
+            — Identifier la rupture de série 2021/2022 (non comparables !)<br>
+            — Normaliser par niveau scolaire (école / collège / lycée)<br>
+            — Documenter les colonnes (intelligibilité)
+            <div class="crisp-label">→ Critères : Cohérence, Timeliness, Intelligibilité</div>
+          </div>
+        </div>
+        <div class="step-ips">Rupture 2022 !</div>
+      </div>
+
+      <div class="step highlighted" onclick="toggleStep(this)">
+        <div class="step-num">04</div>
+        <div>
+          <div class="step-title">Indicator Production</div>
+          <div class="step-desc">Appliquer des algorithmes pour créer l'indicateur et valider sa qualité intrinsèque</div>
+          <div class="step-detail">
+            <strong>Calcul de l'IPS :</strong> Moyenne pondérée des IPS individuels (analyse des correspondances multiples). L'indicateur résultant : IPS moyen de l'établissement + écart-type (hétérogénéité sociale).
+            <br><br><strong>Validation intrinsèque :</strong> Les formules mathématiques sont-elles reproductibles ? La méthodologie DEPP est publiée (Rocher, 2016) → <em>oui, mais table de passage non entièrement ouverte.</em>
+            <div class="crisp-label">→ Critère LADIQ : Qualité Intrinsèque (précision, fiabilité)</div>
+          </div>
+        </div>
+        <div class="step-ips">Formule DEPP</div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <div class="step-num">05</div>
+        <div>
+          <div class="step-title">Indicator Evaluation</div>
+          <div class="step-desc">Tests pour vérifier l'atteinte des objectifs pédagogiques</div>
+          <div class="step-detail">
+            <strong>Questions à tester :</strong><br>
+            — L'IPS corrèle-t-il avec les taux de réussite au DNB/Bac ? (qualité contextuelle)<br>
+            — L'IPS prédit-il le décrochage scolaire ?<br>
+            — Les visualisations (LAVA/OpenLAP) permettent-elles aux enseignants de comprendre et d'agir ?
+            <div class="crisp-label">→ Critères : Qualité Contextuelle + Représentationnelle</div>
+          </div>
+        </div>
+        <div class="step-ips">Corrélation DNB ?</div>
+      </div>
+
+      <div class="step" onclick="toggleStep(this)">
+        <div class="step-num">06</div>
+        <div>
+          <div class="step-title">Reporting & Deployment</div>
+          <div class="step-desc">Intégration dans le système réel, tableaux de bord (LAVA / OpenLAP)</div>
+          <div class="step-detail">
+            <strong>Restitution :</strong> Tableau de bord interactif via OpenLAP. L'enseignant ou le chef d'établissement visualise l'IPS, son évolution, et la distribution intra-établissement.
+            <br><br>⚠️ <strong>Garde-fou :</strong> Ne pas sur-interpréter des écarts IPS < 3 points. La visualisation doit intégrer cette incertitude.
+            <div class="crisp-label">→ Critère : Accessibilité & Intelligibilité (Wang & Strong)</div>
+          </div>
+        </div>
+        <div class="step-ips">OpenLAP / LAVA</div>
+      </div>
+
+    </div>
+    <p style="font-size:12px; color:var(--muted); font-style:italic; margin-top:16px;">💡 Cliquer sur chaque étape pour voir le détail appliqué à l'IPS</p>
+  </div>
+
+  <!-- PANEL 3 -->
+  <div class="panel" id="panel-2">
+    <div class="quality-grid">
+      <div class="q-section">
+        <h3>📊 Qualité des Données</h3>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--accent)"></span>Exactitude (Accuracy)</div>
+          <div class="q-formula">ScoreA = nb données syntaxt. correctes / total</div>
+          <div class="q-ips">IPS : PCS déclaratives → risque d'erreurs de saisie par les établissements</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:70%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--gold)"></span>Complétude (Completeness)</div>
+          <div class="q-formula">ScoreC = valeurs non nulles / total attendu</div>
+          <div class="q-ips">IPS : élèves exclus si PCS parents = non renseignées (depuis 2022)</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:80%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--accent2)"></span>Cohérence (Consistency)</div>
+          <div class="q-formula">1 − violations de contraintes / total vérif.</div>
+          <div class="q-ips">IPS : rupture de série 2021→2022 = incohérence temporelle documentée</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:55%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--accent3)"></span>Actualité (Timeliness)</div>
+          <div class="q-formula">Max(0, 1 − Âge / Volatilité)</div>
+          <div class="q-ips">IPS : mis à jour chaque rentrée scolaire. Volatilité faible (PCS stable dans le temps)</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:85%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--muted)"></span>Intelligibilité</div>
+          <div class="q-formula">nb colonnes documentées / nb total colonnes</div>
+          <div class="q-ips">IPS : documentation DEPP disponible, mais table de passage PCS→IPS partiellement ouverte</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:65%"></div></div>
+        </div>
+      </div>
+
+      <div class="q-section">
+        <h3>🎯 Qualité de l'Indicateur</h3>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--accent)"></span>Intrinsèque (précis, fiable)</div>
+          <div class="q-ips">IPS : méthode ACM publiée (Rocher 2016). Reproductible ? Oui, partiellement. Biais possible : sur-représentation de certaines PCS.</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:75%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--accent2)"></span>Contextuelle (besoins éducatifs)</div>
+          <div class="q-ips">IPS : répond-il au besoin de mesurer le décrochage ? Oui comme proxy social, mais ne mesure pas directement l'échec.</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:72%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--accent3)"></span>Représentationnelle (interprétable)</div>
+          <div class="q-ips">IPS : valeur entre 45-185, facile à lire. Mais sans distribution, difficile d'interpréter un seul score. → L'écart-type est essentiel.</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:68%"></div></div>
+        </div>
+
+        <div class="q-item">
+          <div class="q-name"><span class="dot" style="background:var(--gold)"></span>Accessibilité (équitable)</div>
+          <div class="q-ips">IPS : open data depuis oct. 2022 (après décision de justice !). Disponible en XLSX sur data.education.gouv.fr. Format accessible mais non mis en forme pour les enseignants.</div>
+          <div class="meter-bar"><div class="meter-fill" style="width:78%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 4 -->
+  <div class="panel" id="panel-3">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Jeu de données</th>
+          <th>Source</th>
+          <th>Niveau</th>
+          <th>Période</th>
+          <th>État</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>IPS des écoles</strong><br><small>IPS moyen par école primaire, PCS parents</small></td>
+          <td>DEPP / data.education.gouv.fr</td>
+          <td>Primaire (CM2)</td>
+          <td>2016–2021<br>2022+</td>
+          <td><span class="tag open">Open data ✓</span><span class="tag warning">Rupture 2022</span></td>
+        </tr>
+        <tr>
+          <td><strong>IPS des collèges</strong><br><small>IPS moyen + écart-type, par établissement</small></td>
+          <td>DEPP / data.education.gouv.fr</td>
+          <td>Collège (6e→3e)</td>
+          <td>2016–2021<br>2023+</td>
+          <td><span class="tag open">Open data ✓</span><span class="tag warning">Rupture 2022</span></td>
+        </tr>
+        <tr>
+          <td><strong>IPS des lycées</strong><br><small>Voie générale & techno, voie pro, toutes voies</small></td>
+          <td>DEPP / data.education.gouv.fr</td>
+          <td>Lycée (2de→Term)</td>
+          <td>2022+</td>
+          <td><span class="tag open">Open data ✓</span></td>
+        </tr>
+        <tr>
+          <td><strong>Taux de réussite DNB</strong><br><small>Résultats au brevet par département, académie, type d'établissement</small></td>
+          <td>DEPP</td>
+          <td>Collège</td>
+          <td>Annuel</td>
+          <td><span class="tag open">Open data ✓</span></td>
+        </tr>
+        <tr>
+          <td><strong>Taux de décrochage scolaire</strong><br><small>Sortants sans qualification</small></td>
+          <td>DEPP / Eurostat</td>
+          <td>Secondaire</td>
+          <td>Annuel</td>
+          <td><span class="tag open">Open data ✓</span></td>
+        </tr>
+        <tr>
+          <td><strong>Table de passage PCS → IPS</strong><br><small>41×41 valeurs de référence</small></td>
+          <td>DEPP (pièce jointe)</td>
+          <td>Tous niveaux</td>
+          <td>2022 (v2)</td>
+          <td><span class="tag warning">Partiel</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px; color:var(--muted); font-style:italic; margin-top:16px;">
+      ⚠️ <strong>Précaution critique :</strong> Ne pas comparer IPS 2021 et IPS 2022+ — rupture méthodologique. Les données privées (PCS non renseignées depuis 2022) créent un biais de couverture à documenter dans l'état de l'art.
+    </p>
+  </div>
+
+  <!-- PANEL 5 -->
+  <div class="panel" id="panel-4">
+    <div style="margin-bottom: 20px;">
+      <div class="progress-label" id="progress-text">Progression : 0 / 18 tâches complétées</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="checklist-section">
+      <h3><span class="check-icon">📖</span> A — État de l'art</h3>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Lire et ficher les 6 références fournies (LADIQ, Batini, CRISP-DM, LAVA, Berti-Equille, Wang & Strong)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Rechercher sur Google Scholar : articles sur IPS + réussite scolaire + Learning Analytics</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Identifier d'autres métriques de réussite scolaire (taux DNB, taux de décrochage, notes PISA…)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Recenser les travaux existants sur la qualité des indicateurs éducatifs en France</div></div>
+    </div>
+
+    <div class="checklist-section">
+      <h3><span class="check-icon">📦</span> B — Collecte des données ouvertes</h3>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Télécharger les jeux IPS collèges 2016–2021 (data.education.gouv.fr)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Télécharger les jeux IPS collèges 2023+ (nouvelle méthode)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Récupérer les taux de réussite au DNB par établissement</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Documenter la rupture 2021→2022 (différence de calcul, colonnes ajoutées/supprimées)</div></div>
+    </div>
+
+    <div class="checklist-section">
+      <h3><span class="check-icon">🔬</span> C — Application des 5 critères LADIQ sur l'IPS</h3>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Exactitude :</strong> calculer le taux d'erreurs déclaratives sur les PCS (proxy : % "non renseigné")</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Complétude :</strong> % d'élèves exclus du calcul IPS (PCS manquantes) par établissement</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Cohérence :</strong> mesurer l'incohérence inter-années (rupture 2022) et intra-établissement</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Actualité :</strong> vérifier la fréquence de mise à jour (annuelle) vs volatilité réelle des PCS</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div><strong>Intelligibilité :</strong> évaluer la documentation disponible (colonnes, métadonnées, guide utilisateur)</div></div>
+    </div>
+
+    <div class="checklist-section">
+      <h3><span class="check-icon">📊</span> D — Analyse & Visualisation (LAVA / OpenLAP)</h3>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Produire une corrélation IPS ↔ taux réussite DNB (graphique scatter plot par établissement)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Visualiser la distribution IPS (hétérogénéité intra-établissement via écart-type)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Évaluer la qualité représentationnelle : les enseignants comprennent-ils le tableau de bord ?</div></div>
+    </div>
+
+    <div class="checklist-section">
+      <h3><span class="check-icon">✍️</span> E — Rédaction</h3>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Rédiger l'état de l'art (métriques éducatives + qualité des données)</div></div>
+      <div class="checklist-item"><div class="check-box" onclick="toggleCheck(this)"></div><div>Appliquer le cadre LADIQ étape par étape et documenter les résultats pour l'IPS</div></div>
+    </div>
+  </div>
+
+  <div class="footnote refs">
+    Réf. 1 : Djelil & Mandran (2025) — LADIQ Framework, LAK'25 | Réf. 2 : Batini et al. (2009) — ACM Computing Surveys | Réf. 3 : Berti-Equille (2004) | Réf. 4 : Chapman et al. — CRISP-DM | Réf. 5 : Chatti et al. (2020) — LAVA | Réf. 6 : Wang & Strong (1996)<br>
+    Données : <a href="https://data.education.gouv.fr" target="_blank">data.education.gouv.fr</a> — DEPP, Ministère de l'Éducation Nationale
+  </div>
+
+</div>
+
+<script>
+  function showTab(i) {
+    document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', i === j));
+    document.querySelectorAll('.panel').forEach((p, j) => p.classList.toggle('active', i === j));
+  }
+
+  function toggleStep(el) {
+    const detail = el.querySelector('.step-detail');
+    if (detail) detail.classList.toggle('open');
+  }
+
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+    el.textContent = el.classList.contains('checked') ? '✓' : '';
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const boxes = document.querySelectorAll('.check-box');
+    const checked = document.querySelectorAll('.check-box.checked').length;
+    const pct = Math.round(checked / boxes.length * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `Progression : ${checked} / ${boxes.length} tâches complétées (${pct}%)`;
+    document.getElementById('progress-fill').style.background = pct === 100 ? 'var(--accent3)' : pct > 50 ? 'var(--gold)' : 'var(--accent)';
+  }
+</script>
+</body>
+</html>
