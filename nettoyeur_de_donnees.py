@@ -63,14 +63,14 @@ class LadiqCleaner :
 # --- EXECUTION ---
 
 # 1. Chargement et premier nettoyage
-cleaner = LadiqCleaner("fr-en-evaluations_nationales_6eme_par_etablissement.csv")
+cleaner = LadiqCleaner("fichierscsv/fr-en-evaluations_nationales_6eme_par_etablissement.csv")
 cleaner.measure_completeness()
 cleaner.clean_duplicates()
 cleaner.check_consistency('Score moyen')
 cleaner.handle_missing_values()
 
 # 2. Ajout de la dimension sociale (IPS)
-cleaner.merge_with_ips("fr-en-ips-colleges-ap2023.csv")
+cleaner.merge_with_ips("fichierscsv/fr-en-ips-colleges-ap2023.csv")
 
 # 3. Rapport final
 cleaner.get_report()
