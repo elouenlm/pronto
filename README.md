@@ -1,12 +1,14 @@
-# 🧠 PRONTO - Auditeur LADIQ Intelligent
+# PRONTO - Validation d'un framework de conception d'indicateurs de qualité à partir de données de qualité
 
-> **Projet de Qualité des Données** - Système d'audit automatisé basé sur le framework LADIQ pour nettoyer et certifier les données éducatives françaises.
+Etudiants : 
+
+LE MAGUET Elouen
+LE NY Paul
+VIDAL Brayan
+
+> **Projet de Qualité des Données** - Système d'audit automatisé basé sur le framework LADIQ pour nettoyer et certifier les données éducatives françaises, pour observer l'influence des données incomplètes sur la décision d'un indicateur dans le domaine de l'éducation.
 
 ---
-
-## 📋 Description
-
-**PRONTO** est un outil d'audit intelligent de la qualité des données qui implémente le framework **LADIQ** (Lisibilité, Actualité, Documentation, Intégrité, Qualité). Il analyse automatiquement les jeux de données CSV, détecte les anomalies, nettoie les données en temps réel et génère un rapport de qualité détaillé.
 
 ### Cas d'usage
 Ce projet traite deux types de données du système éducatif français :
@@ -20,7 +22,6 @@ Le système évalue 5 dimensions de la qualité :
 - **L**ogique : Cohérence des valeurs métier
 - **I**ntelligibilité : Documentation des colonnes
 
----
 
 ## 🗂️ Structure du projet
 
@@ -109,7 +110,7 @@ Les graphiques seront sauvegardés dans `visualisation/`.
 
 ---
 
-## 📊 Métriques de qualité
+## Métriques de qualité
 
 Le système calcule une **note globale** basée sur la formule LADIQ :
 
@@ -126,7 +127,7 @@ Où :
 
 ---
 
-## 🧪 Exemples de règles appliquées
+## Exemples de règles appliquées
 
 ### IPS (volatilité = 5 ans)
 - **Code UAI** : Format `^\d{7}[A-Z]$` (ex: 0010001A)
@@ -142,7 +143,7 @@ Où :
 
 ## 👥 Auteurs
 
-Projet réalisé dans le cadre du cours de Qualité des Données - IMT Atlantique.
+Projet réalisé dans le cadre du cours de PRONTO - IMT Atlantique.
 
 ---
 
