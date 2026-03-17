@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor  # Changement de modèle ici
 from PyALE import ale
 import os
 
@@ -9,7 +9,7 @@ import os
 FILE_IPS = 'fichierscsv/fr-en-ips-colleges-ap2023.csv'
 FILE_BREVET = 'fichierscsv/fr-en-indicateurs-valeur-ajoutee-colleges.csv'
 
-class IpsFullAuditor:
+class IpsXGBoostAuditor:
     def __init__(self, ips_path, brevet_path):
         self.ips_path = ips_path
         self.brevet_path = brevet_path
@@ -47,60 +47,63 @@ class IpsFullAuditor:
         
         # 4. Fusion sur le code UAI
         self.df = pd.merge(
-            df_ips[['UAI', 'IPS', 'Is_Public', 'Académie']], 
+            df_ips[['UAI', 'IPS', 'Is_Public']], 
             df_brevet[['UAI', 'Note_Ecrit', 'Candidats']], 
             on='UAI', 
             how='inner'
-        ).dropna(subset=['IPS', 'Note_Ecrit', 'Candidats'])
+        ).dropna(subset=['IPS', 'Is_Public', 'Note_Ecrit', 'Candidats'])
         
         print(f"✅ Analyse prête sur {len(self.df)} établissements.")
 
     def run_ale_analysis(self):
         if self.df is None: return
 
-        # Variables utilisées pour la prédiction (Features)
+        # Variables de prédiction
         features = ['IPS', 'Is_Public', 'Candidats']
         X = self.df[features]
         y = self.df['Note_Ecrit']
 
-        print(f"🤖 Entraînement de la Forêt Aléatoire sur : {features}")
-        model = RandomForestRegressor(n_estimators=200, max_depth=10, random_state=42)
+        print(f"🤖 Entraînement du modèle XGBoost sur : {features}")
+        
+        # Configuration de XGBoost
+        model = XGBRegressor(
+            n_estimators=150,
+            learning_rate=0.08,
+            max_depth=6,
+            random_state=42,
+            objective='reg:squarederror'
+        )
+        
+        from sklearn.model_selection import cross_val_score
         model.fit(X, y)
 
-        # --- AJOUT DU CALCUL DU R² ---
-        r2_score = model.score(X, y)
-        print("\n" + "="*40)
-        print(f"📈 SCORE DE QUALITÉ DU MODÈLE (R²)")
-        print(f"R² = {r2_score:.4f}")
-        print(f"Interprétation : {r2_score*100:.1f}% de la variance de la note")
-        print("au Brevet est expliquée par les variables choisies.")
-        print("="*40 + "\n")
+        # Calcul de la qualité (R²) par validation croisée pour éviter le biais d'entraînement
+        cv_scores = cross_val_score(model, X, y, cv=5, scoring='r2')
+        r2_score = cv_scores.mean()
+        print(f"\n📈 Score de Qualité (R² CV-5) : {r2_score:.2f} ± {cv_scores.std():.2f}")
+        print(f"Cela signifie que ~{r2_score*100:.1f}% de la note est expliquée par ces facteurs (validation croisée).")
 
-        # Calcul de l'importance
-        importances = model.feature_importances_
-        print("--- Importance des variables ---")
-        for f, imp in zip(features, importances):
-            print(f"📍 {f}: {imp:.1%}")
-
-        print("\n📊 Génération de la courbe ALE pour l'IPS...")
+        print("\n📊 Génération de la courbe ALE avec XGBoost...")
+        # L'ALE isole l'effet de l'IPS
         ale_eff = ale(X=X, model=model, feature=['IPS'], grid_size=40, include_CI=True)
         
+        # Personnalisation du graphique
         fig = plt.gcf()
-        fig.set_size_inches(10, 6)
+        fig.set_size_inches(12, 7)
         ax = plt.gca()
-        ax.set_title(f"Effet Local Accumulé (ALE) de l'IPS\n(Modèle Random Forest - R²: {r2_score:.2f})", fontsize=13)
-        ax.set_xlabel("Indice de Position Sociale (IPS)")
-        ax.set_ylabel("Impact sur la note (en points)")
-        ax.axhline(0, color='black', linewidth=1, alpha=0.3)
-        ax.grid(True, linestyle='--', alpha=0.5)
+        ax.set_title("Audit IPS : Effet Local Accumulé (Modèle XGBoost)\nImpact pur de l'IPS sur la Note au Brevet", fontsize=14)
+        ax.set_xlabel("Indice de Position Sociale (IPS)", fontsize=12)
+        ax.set_ylabel("Variation de la note (points)", fontsize=12)
+        ax.grid(True, linestyle='--', alpha=0.6)
         
+        os.makedirs("visualisation", exist_ok=True)
         plt.tight_layout()
-        plt.savefig("courbe_ale_ips_pure.png", dpi=150)
-        print("💾 Graphique sauvegardé : courbe_ale_ips_pure.png")
+        plt.savefig("visualisation/courbe_ale_ips_xgboost.png", dpi=150)
+        print("💾 Graphique sauvegardé : visualisation/courbe_ale_ips_xgboost.png")
         plt.show()
 
 # --- DÉMARRAGE ---
 if __name__ == "__main__":
-    auditor = IpsFullAuditor(FILE_IPS, FILE_BREVET)
+    auditor = IpsXGBoostAuditor(FILE_IPS, FILE_BREVET)
     auditor.prepare_data()
     auditor.run_ale_analysis()
