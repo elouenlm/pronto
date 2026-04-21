@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprendre mon Collège : IPS & Brevet</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="mes_colleges.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        #searchBar {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        #searchResults {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .result-item {
+            border-left: 5px solid #3498db;
+            padding: 15px;
+            background: #fdfdfd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .result-item h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .metric {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            z-index: 1;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            width: 100%;
+        }
+
+        .diag-red {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .diag-orange {
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        .diag-gold {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+
+        .diag-green {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .diag-blue {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>🌍 Comprendre mon Collège</h1>
+        <p>Visualiser l'impact du milieu social (IPS) sur la réussite au Brevet en France.</p>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2>🔍 1. Cherchez un établissement</h2>
+            <input type="text" id="searchBar"
+                placeholder="Tapez le nom d'un collège ou d'une ville (ex: Victor Hugo, Paris)...">
+            <div id="searchResults"></div>
+        </div>
+
+        <div class="card">
+            <h2>🗺️ 2. Carte des réussites au Brevet</h2>
+            <p>Plus le cercle est grand et bleu, plus le taux de réussite est élevé. <i>(Note: si les coordonnées GPS
+                    sont absentes, les points sont regroupés au centre de la France)</i>.</p>
+            <div id="map"></div>
+        </div>
+
+        <div class="card">
+            <h2>📊 3. L'impact du milieu social en un coup d'œil</h2>
+            <p>Ce graphique calcule en direct le taux de réussite moyen par "palier" social à partir de vos données.</p>
+            <div class="chart-container">
+                <canvas id="ipsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AIRBAG ANTI-CRASH ---
+        try {
+            if (typeof collegesData === 'undefined') {
+                throw new Error("Le fichier 'mes_colleges.js' est introuvable ou n'a pas pu être chargé.");
+            }
+
+            // --- 1. NETTOYAGE ET DÉDOUBLONNAGE ---
+            const vus = new Set(); // Ce "Set" va mémoriser les collèges déjà traités
+
+            const cleanData = collegesData.map(c => {
+                return {
+                    nom: c.nom || c["Nom de l'établissement"] || "Nom inconnu",
+                    ville: c.ville || c["Nom de la commune"] || c["Commune"] || "",
+                    secteur: c.secteur || c["Secteur"] || "?",
+                    ips: parseFloat(c.ips || c["IPS"] || 0),
+                    taux: parseFloat(c.taux || c["Taux_Reussite"] || c["Taux de réussite G"] || 0),
+                    lat: parseFloat(c.lat || c["Latitude"] || 46.5 + (Math.random() - 0.5) * 5),
+                    lon: parseFloat(c.lon || c["Longitude"] || 2.0 + (Math.random() - 0.5) * 5)
+                };
+            }).filter(c => {
+                // 1. On vérifie que les données sont valides
+                if (c.ips <= 0 || c.taux <= 0) return false;
+
+                // 2. On crée une "carte d'identité" du collège (ex: "Collège Victor Hugo - Besançon")
+                const idUnique = c.nom + " - " + c.ville;
+
+                // 3. On vérifie si on l'a déjà vu
+                if (vus.has(idUnique)) {
+                    return false; // Doublon détecté ! On le supprime.
+                } else {
+                    vus.add(idUnique); // Nouveau collège ! On le mémorise et on le garde.
+                    return true;
+                }
+            });
+
+            // Diagnostic visuel
+            function getDiagnostic(ips) {
+                if (ips < 80) return { text: "Milieu très défavorisé.", class: "diag-red" };
+                if (ips < 100) return { text: "Milieu défavorisé.", class: "diag-orange" };
+                if (ips < 120) return { text: "Moyenne nationale / Mixte.", class: "diag-gold" };
+                if (ips < 140) return { text: "Milieu favorisé.", class: "diag-green" };
+                return { text: "Milieu très favorisé.", class: "diag-blue" };
+            }
+
+            // --- 2. MOTEUR DE RECHERCHE ---
+            const searchBar = document.getElementById('searchBar');
+            const searchResults = document.getElementById('searchResults');
+
+            searchBar.addEventListener('keyup', (e) => {
+                const query = e.target.value.toLowerCase();
+                searchResults.innerHTML = '';
+
+                if (query.length < 3) return;
+
+                const filteredData = cleanData.filter(c =>
+                    c.nom.toLowerCase().includes(query) || c.ville.toLowerCase().includes(query)
+                ).slice(0, 12);
+
+                filteredData.forEach(c => {
+                    const diag = getDiagnostic(c.ips);
+                    const html = `
+                        <div class="result-item">
+                            <h3>🏫 ${c.nom} (${c.ville})</h3>
+                            <p style="color:#7f8c8d; margin-top:-5px; font-size:0.9em;">Secteur : ${c.secteur}</p>
+                            <p>Niveau Social (IPS) : <span class="metric">${c.ips.toFixed(1)}</span></p>
+                            <p>Taux de Réussite : <span class="metric">${c.taux.toFixed(1)}%</span></p>
+                            <p>Diagnostic : <span class="${diag.class}">${diag.text}</span></p>
+                        </div>
+                    `;
+                    searchResults.innerHTML += html;
+                });
+            });
+
+            // --- 3. CARTE DE FRANCE ---
+            const map = L.map('map').setView([46.603354, 1.888334], 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+            const mapData = cleanData.slice(0, 1000);
+            mapData.forEach(c => {
+                let color = c.taux > 85 ? '#3498db' : (c.taux > 75 ? '#f1c40f' : '#e74c3c');
+                const marker = L.circleMarker([c.lat, c.lon], {
+                    radius: c.taux / 12, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.7
+                }).addTo(map);
+                marker.bindPopup(`<b>${c.nom}</b><br>${c.ville} (${c.secteur})<br><hr>IPS: ${c.ips.toFixed(1)}<br>Réussite: <b>${c.taux.toFixed(1)}%</b>`);
+            });
+
+            // --- 4. GRAPHIQUE DYNAMIQUE ---
+            let sommes = [0, 0, 0, 0, 0];
+            let compteurs = [0, 0, 0, 0, 0];
+
+            cleanData.forEach(c => {
+                if (c.ips < 80) { sommes[0] += c.taux; compteurs[0]++; }
+                else if (c.ips < 100) { sommes[1] += c.taux; compteurs[1]++; }
+                else if (c.ips < 120) { sommes[2] += c.taux; compteurs[2]++; }
+                else if (c.ips < 140) { sommes[3] += c.taux; compteurs[3]++; }
+                else { sommes[4] += c.taux; compteurs[4]++; }
+            });
+
+            let moyennes = sommes.map((somme, index) => compteurs[index] > 0 ? (somme / compteurs[index]).toFixed(1) : 0);
+
+            const ctx = document.getElementById('ipsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Très Défavorisé (<80)', 'Défavorisé (80-100)', 'Mixte (100-120)', 'Favorisé (120-140)', 'Très Favorisé (>140)'],
+                    datasets: [{
+                        label: 'Taux de réussite moyen (%)', data: moyennes,
+                        backgroundColor: ['rgba(231, 76, 60, 0.8)', 'rgba(230, 126, 34, 0.8)', 'rgba(241, 196, 15, 0.8)', 'rgba(46, 204, 113, 0.8)', 'rgba(52, 152, 219, 0.8)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+
+        } catch (erreur) {
+            // SI ÇA CRASH, ÇA AFFICHE ÇA À L'ÉCRAN AU LIEU DE TOUT MASQUER
+            document.body.innerHTML = `
+            <div style="padding: 50px; text-align: center; font-family: sans-serif; background: #fff;">
+                <h1 style="color: #e74c3c;">🚨 Aïe, les données sont introuvables !</h1>
+                <p><b>Détail de l'erreur :</b> ${erreur.message}</p>
+                <hr style="max-width: 500px; margin: 20px auto;">
+                <p>👉 Vérifie que le fichier <b>mes_colleges.js</b> est bien enregistré dans le <b>MÊME DOSSIER</b> que ton fichier HTML.</p>
+                <p>👉 Appuie sur la touche <b>F12</b> de ton clavier et regarde l'onglet "Console" pour voir s'il y a des écritures rouges.</p>
+            </div>`;
+        }
+    </script>
+</body>
+
+</html>

@@ -46,5 +46,7 @@ def generate_vulgarized_chart(df):
     print("💾 Graphique de vulgarisation sauvegardé : thermometre_ips_reussite.png")
     plt.show()
 
-# Pour l'utiliser, ajoute simplement cette ligne à la fin de ton script :
-# generate_vulgarized_chart(auditor.df)
+
+generate_vulgarized_chart(auditor.df)
+
+#Refaire avec partition floue forte
