@@ -3,15 +3,21 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px  # Bibliothèque puissante pour les cartes interactives
+from pathlib import Path
 
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(page_title="Audit IPS & Réussite au Brevet", layout="wide")
 
 @st.cache_data # Pour éviter de recharger les fichiers à chaque clic
 def load_data():
-    # Remplace par tes chemins de fichiers réels
-    df_ips = pd.read_csv('fichierscsv/fr-en-ips-colleges-ap2023.csv', sep=';')
-    df_brevet = pd.read_csv('fichierscsv/fr-en-indicateurs-valeur-ajoutee-colleges.csv', sep=';')
+    root = Path(__file__).resolve().parent.parent
+    data_dir = root / 'fichierscsv'
+
+    df_ips_path = data_dir / 'fr-en-ips-colleges-ap2023.csv'
+    df_brevet_path = data_dir / 'fr-en-indicateurs-valeur-ajoutee-colleges.csv'
+
+    df_ips = pd.read_csv(df_ips_path, sep=';')
+    df_brevet = pd.read_csv(df_brevet_path, sep=';')
     
     # Nettoyage rapide (version simplifiée)
     df_ips['IPS'] = pd.to_numeric(df_ips['IPS'].astype(str).str.replace(',', '.'), errors='coerce')

@@ -337,7 +337,7 @@ def generate_data():
         'Île-de-France', 'Auvergne-Rhône-Alpes', 'Nouvelle-Aquitaine',
         'Occitanie', 'Hauts-de-France', 'Provence-Alpes-Côte d\'Azur',
         'Grand Est', 'Normandie', 'Bretagne', 'Pays de la Loire',
-        'Centre-Val de Loire', 'Bourgogne-Franche-Comté', 'Corse', 'DROM'
+        'Centre-Val de Loire', 'Bourgogne-Franche-Comté', 'Corse', 'Outre-mer'
     ]
     region_weights = [0.20, 0.13, 0.10, 0.10, 0.09, 0.09, 0.08, 0.05, 0.05, 0.04, 0.03, 0.02, 0.01, 0.01]
     region_arr = np.random.choice(regions, n, p=region_weights)
@@ -354,6 +354,7 @@ def generate_data():
         'Region': region_arr,
         'Session': session_arr,
     })
+    df['Territoire'] = np.where(df['Region'] == 'Outre-mer', 'Outre-mer', 'Métropole')
     return df
 
 
@@ -446,7 +447,7 @@ REGION_COORDS = {
     'Centre-Val de Loire': (47.90, 1.90),
     'Bourgogne-Franche-Comté': (47.32, 5.04),
     'Corse': (41.92, 8.74),
-    'DROM': (16.24, -61.53),
+    'Outre-mer': (16.24, -61.53),
 }
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
@@ -463,10 +464,20 @@ with st.sidebar:
 
     sessions = st.multiselect("Session", [2022, 2023, 2024], default=[2022, 2023, 2024])
     secteurs = st.multiselect("Secteur", ['Public', 'Privé'], default=['Public', 'Privé'])
+    territoires = st.multiselect("Territoires", ['Métropole', 'Outre-mer'], default=['Métropole', 'Outre-mer'])
     ips_range = st.slider("Plage IPS", 38, 192, (38, 192))
     regions_list = sorted(df['Region'].unique())
     selected_regions = st.multiselect("Régions", regions_list, default=regions_list)
 
+    st.markdown('<hr style="border-color: #21262d;">', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Actualités</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <ul style='margin:0; padding-left:20px; color:#c9d1d9; font-size:0.88rem; line-height:1.5;'>
+        <li>Mai 2026 : nouveau plan ministériel pour l'équité scolaire.</li>
+        <li>Avril 2026 : DEPP souligne les risques de fracture territoriale en Outre-mer.</li>
+        <li>Mars 2026 : accent sur la transparence des indicateurs et la qualité des métadonnées.</li>
+    </ul>
+    """, unsafe_allow_html=True)
     st.markdown('<hr style="border-color: #21262d;">', unsafe_allow_html=True)
     st.markdown("""
     <div style='font-size: 0.72rem; color: #8b949e; line-height: 1.6;'>
@@ -481,6 +492,7 @@ with st.sidebar:
 mask = (
     df['Session'].isin(sessions) &
     df['Secteur'].isin(secteurs) &
+    df['Territoire'].isin(territoires) &
     df['IPS'].between(ips_range[0], ips_range[1]) &
     df['Region'].isin(selected_regions)
 )
@@ -516,13 +528,13 @@ with col1:
     <div class='kpi-card'>
         <div class='kpi-value'>{n_collèges:,}</div>
         <div class='kpi-label'>Collèges analysés</div>
-        <div class='kpi-delta'>↑ France métro. + DROM</div>
+        <div class='kpi-delta'>↑ France métro. + Outre-mer</div>
     </div>
     """, unsafe_allow_html=True)
 with col2:
     st.markdown(f"""
     <div class='kpi-card'>
-        <div class='kpi-value'>{pearson_r:.2f}</div>
+        <div class='kpi-value'>{pearson_r:.3g}</div>
         <div class='kpi-label'>Pearson r (IPS↔DNB)</div>
         <div class='kpi-delta'>↑ Confirmé 2022–2024</div>
     </div>
@@ -538,7 +550,7 @@ with col3:
 with col4:
     st.markdown(f"""
     <div class='kpi-card'>
-        <div class='kpi-value'>{mean_ips:.0f}</div>
+        <div class='kpi-value'>{mean_ips:.3g}</div>
         <div class='kpi-label'>IPS moyen (sélection)</div>
         <div class='kpi-delta'>Réf. nationale ~103</div>
     </div>
@@ -590,7 +602,7 @@ with tab1:
             fig_scatter.update_traces(marker=dict(size=5), selector=dict(mode='markers'))
             fig_scatter.add_annotation(
                 x=0.05, y=0.95, xref='paper', yref='paper',
-                text=f"<b>r = {pearson_r:.2f}</b>",
+                text=f"<b>r = {pearson_r:.3g}</b>",
                 showarrow=False,
                 font=dict(size=14, color='#58a6ff', family='Space Mono'),
                 bgcolor='#161b22', bordercolor='#21262d', borderpad=6,
@@ -633,7 +645,7 @@ with tab1:
             Note_moy=('Note_DNB', 'mean'),
             Taux_moy=('Taux_Reussite', 'mean'),
             N=('IPS', 'count'),
-        ).reset_index().round(2)
+        ).reset_index().round({'IPS_moyen': 1, 'Note_moy': 2, 'Taux_moy': 1, 'N': 0})
         st.dataframe(
             stats_sec.rename(columns={
                 'IPS_moyen': 'IPS moy.', 'Note_moy': 'Note moy.',
@@ -786,26 +798,19 @@ with tab2:
 with tab3:
     col1, col2 = st.columns([2, 3])
     with col1:
-        st.markdown('<div class="section-header">Importance des variables (Random Forest)</div>', unsafe_allow_html=True)
-        feat_imp = pd.DataFrame({
-            'Variable': ['IPS', 'Is_Public (Secteur)', 'Nb Candidats (Taille)'],
-            'Importance': [0.78, 0.15, 0.07],
-        })
-        fig_imp = go.Figure(go.Bar(
-            x=feat_imp['Importance'],
-            y=feat_imp['Variable'],
-            orientation='h',
-            marker=dict(color=['#58a6ff', '#3fb950', '#f0883e'], opacity=0.85),
-            text=[f"{v:.0%}" for v in feat_imp['Importance']],
-            textposition='outside',
-            textfont=dict(color='#c9d1d9', size=12, family='Space Mono'),
-        ))
-        temp_theme = PLOTLY_THEME.copy()
-        del temp_theme['xaxis']
-        fig_imp.update_layout(**temp_theme, height=200, xaxis_title='Importance relative', legend=LEGEND_DEFAULT)
-        fig_imp.update_xaxes(range=[0, 0.95], tickformat='%', gridcolor='#21262d')
-        st.plotly_chart(fig_imp, use_container_width=True)
-        st.markdown("<div class='success-box'>✅ <b>H2 confirmée</b> — L'IPS est le prédicteur dominant (78% d'importance). Le modèle Random Forest atteint R² = 0,93.</div>", unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Regard critique & documentation</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class='info-box'>
+            <b>Interprétation :</b> Ce tableau présente une corrélation illustrée entre IPS et note DNB. La relation est plausible, mais la corrélation ne prouve pas la causalité.
+        </div>
+        <div class='info-box'>
+            <b>Données :</b> jeu de données synthétique inspiré des tendances DEPP 2022-2024. Il sert de prototype et n'est pas un indicateur officiel.
+        </div>
+        <div class='warning-box'>
+            ⚠️ Limites visuelles : les moyennes régionales masquent les disparités locales et la catégorie Outre-mer est agrégée.
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<div class='info-box'>ℹ️ Documenter les choix visuels permet de mieux expliquer les objets : source, méthode, limites, et groupe cible.</div>", unsafe_allow_html=True)
 
     with col2:
         st.markdown('<div class="section-header">Courbe ALE — Effet marginal de l\'IPS</div>', unsafe_allow_html=True)
@@ -874,7 +879,7 @@ with tab4:
                 coloraxis_colorbar=dict(title='IPS moyen', tickcolor='#8b949e'),
             )
             st.plotly_chart(fig_map, use_container_width=True)
-            st.markdown("<div class='info-box'>ℹ️ La carte est centrée sur la France métropolitaine. Les DROM restent inclus dans les calculs et le tableau.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='info-box'>ℹ️ La carte est centrée sur la France métropolitaine. Les territoires Outre-mer sont inclus dans les calculs, mais restent agrégés.</div>", unsafe_allow_html=True)
 
         with col2:
             st.markdown('<div class="section-header">Recherche IA par IPS</div>', unsafe_allow_html=True)
@@ -895,8 +900,8 @@ with tab4:
             note_pred = float(np.clip(slope * ips_query + intercept, 0, 20))
             delta_note = note_pred - note_ref
 
-            st.metric('Note estimée IA (/20)', f"{note_pred:.2f}")
-            st.metric('Ecart vs moyenne de référence', f"{delta_note:+.2f} pt")
+            st.metric('Note estimée IA (/20)', f"{note_pred:.3g}")
+            st.metric('Ecart vs moyenne de référence', f"{delta_note:+.3g} pt")
             st.caption(model_scope)
 
             st.markdown('<div class="section-header" style="margin-top: 12px;">Indicateurs régionaux</div>', unsafe_allow_html=True)
@@ -905,7 +910,7 @@ with tab4:
                     'IPS_moy': 'IPS moy.',
                     'Note_moy': 'Note DNB moy.',
                     'N': 'N collèges',
-                }).round(2),
+                }).round({'IPS moy.': 1, 'Note DNB moy.': 2, 'N collèges': 0}),
                 hide_index=True,
                 use_container_width=True,
             )
@@ -931,6 +936,69 @@ with tab5:
     with col2:
         st.markdown('<div class="section-header">Qualité</div>', unsafe_allow_html=True)
         st.info("Score global : 94.5%")
+
+    st.markdown('<div class="section-header">Sources et regard critique</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class='info-box'>
+        <b>Sources :</b><br>
+        - Données synthétiques inspirées des publications DEPP 2022-2024.<br>
+        - Méthodologie LADIQ appliquée à l'audit IPS/DNB.<br>
+        - Visualisation réalisée avec Streamlit et Plotly.
+    </div>
+    <div class='info-box'>
+        <b>Limites :</b><br>
+        - Corrélation ≠ causalité.<br>
+        - Les moyennes régionales masquent les disparités locales.<br>
+        - La catégorie Outre-mer reste agrégée et doit être traitée séparément pour un diagnostic précis.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="section-header">Bibliographie</div>', unsafe_allow_html=True)
+    st.markdown("""
+    **ANNEXE**
+
+    Djelil F. & Mandran N. (2025). A framework for Learning Analytics Data and Indicator Quality (LADIQ). LAK'25.
+
+    **LADIQ**
+
+    Batini C. et al. (2009). Methodologies for data quality assessment and improvement. ACM Computing Surveys, 41(3).
+
+    **Qualité données**
+
+    Berti-Équille L. (2004). Un état de l'art sur la qualité des données. Ingénierie des systèmes d'information, 9(5-6).
+
+    **État de l'art**
+
+    Chapman P. et al. CRISP-DM 1.0: Step-by-step data mining guide. CRISP-DM Consortium.
+
+    **CRISP-DM**
+
+    Chatti M.A. et al. (2020). The LAVA Model: Learning Analytics Meets Visual Analytics. Springer.
+
+    **LAVA**
+
+    Wang R.Y. & Strong D.M. (1996). Beyond Accuracy: What Data Quality Means to Data Consumers. JMIS, 12(4).
+
+    **Wang & Strong**
+
+    Rocher T. (2016). Construction d'un indice de position sociale des élèves. Éducation & formations, 90, 5–27.
+
+    **IPS**
+
+    Rocher T. (2023). Indice de position sociale (IPS) : actualisation 2022. Doc. de travail n°2023-M01. DEPP.
+
+    **IPS 2022**
+
+    Murat F. (2021). Les inégalités territoriales en matière d'éducation. DEPP.
+
+    **DNB/Territoire**
+
+    Dauphant L. et al. (2023). L'IPS : un outil statistique pour décrire les inégalités sociales. Note d'Info n°23.16. DEPP.
+
+    **IPS/Inégalités**
+
+    PRONTO — Groupe 59 | IMT Atlantique Brest | Avril 2026   |   Annexe — Bibliographie
+    """)
 
 # ─── FOOTER ──────────────────────────────────────────────────────────────────
 st.markdown("<div style='height: 32px;'></div>", unsafe_allow_html=True)

@@ -63,7 +63,7 @@ cd pronto
 
 2. **Installer les dépendances**
 ```bash
-pip install pandas matplotlib seaborn scipy
+pip install pandas matplotlib seaborn scipy streamlit plotly scikit-fuzzy numpy
 ```
 
 ---
@@ -108,7 +108,23 @@ Chargement des fichiers pour la comparaison visuelle...
 
 Les graphiques seront sauvegardés dans `visualisation/`.
 
+### 3. Dashboard interactif
+
+Lancez l'application Streamlit pour visualiser le diagnostic et les analyses en temps réel :
+
+```bash
+python -m streamlit run pronto/codes/elouen/app.py
+```
+
+Le dashboard s'ouvre ensuite dans votre navigateur sur `http://localhost:8503`.
+
 ---
+
+## Sources du dashboard
+
+- Données synthétiques inspirées par les publications DEPP 2022-2024.
+- Méthodologie basée sur le cadre LADIQ pour la qualité des données.
+- Visualisation interactive développée avec Streamlit et Plotly.
 
 ## Métriques de qualité
 
