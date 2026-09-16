@@ -11,3 +11,5 @@ venv/
 *.png
 *.jpg
 *.jpeg
+!assets/
+!assets/**

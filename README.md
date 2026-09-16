@@ -2,6 +2,12 @@
 
 PRONTO est un prototype de dashboard interactif pour auditer et explorer la qualite des donnees educatives francaises, dans le cadre du framework LADIQ.
 
+Les ressources necessaires sont regroupees dans :
+
+- `data/fr-en-ips-colleges-ap2023.csv` : donnees IPS chargees par le dashboard ;
+- `data/fr-en-dnb-par-etablissement.csv` : source DNB conservee pour les analyses et extensions ;
+- `assets/LADIQ_framework.png` : schema du framework affiche dans l'interface.
+
 ## Demonstration
 
 L'application est developpee avec Streamlit et Plotly. Le dashboard presente :
@@ -12,7 +18,7 @@ L'application est developpee avec Streamlit et Plotly. Le dashboard presente :
 - une analyse Random Forest et des courbes ALE ;
 - un suivi des dimensions de qualite selon LADIQ.
 
-> Les donnees affichees par le dashboard principal sont synthetiques et generees pour la demonstration. Elles sont inspirees de donnees publiques DEPP et ne constituent pas une publication statistique officielle.
+> Les valeurs IPS sont chargees depuis le fichier DEPP empaquete. Les variables DNB utilisees pour le prototype sont generees pour la demonstration et ne constituent pas une publication statistique officielle.
 
 ## Lancer localement
 
