@@ -28,7 +28,7 @@ Dans le système éducatif français, les décisions d'allocation de moyens et d
 Comment la **qualité des données** (manquants historiques, recalibrage 2022 des pondérations PCS, syntaxe des UAI) influence-t-elle la robustesse des indicateurs et les décisions publiques ?
 
 PRONTO implémente le cadre d'évaluation **LADIQ (Learning Analytics Data Quality Framework)** à travers 5 dimensions fondamentales :
-- **Complétude (C)** : Taux de remplissage effectif des données (99.94% post-2022 vs ~94% historique).
+- **Complétude (C)** : Taux de remplissage effectif des données (99.9% post-2022 vs ~94% historique).
 - **Actualité (Act)** : Prise en compte de la volatilité temporelle et de la fraîcheur des sessions.
 - **Exactitude (E)** : Contrôle syntaxique rigoureux par expressions régulières (ex. format UAI `^\d{7}[A-Z]$`).
 - **Logique (L)** : Vérification des bornes métier (IPS ∈ [38, 192], taux de réussite ∈ [0%, 100%]).

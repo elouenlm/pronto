@@ -373,7 +373,7 @@ def generate_ale_data():
 def generate_completeness_data():
     return pd.DataFrame({
         'Periode': ['2016–2021\n(pré-public)', '2022\n(transition)', '2023+\n(publique)'],
-        'Completude': [94.0, 98.0, 99.94],
+        'Completude': [94.0, 98.0, 99.9],
         'Manquants': [418, 140, 4],
         'Color': ['#da3633', '#d29922', '#3fb950'],
     })
@@ -459,14 +459,14 @@ st.markdown("""
 # ─── KPI ROW ─────────────────────────────────────────────────────────────────
 pearson_r = np.corrcoef(dff['IPS'], dff['Note_DNB'])[0, 1]
 mean_ips = dff['IPS'].mean()
-completeness = 99.94
+completeness = 99.9
 n_collèges = len(dff)
 
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.markdown(f"""
     <div class='kpi-card'>
-        <div class='kpi-value'>{n_collèges:,}</div>
+        <div class='kpi-value'>{f"{n_collèges:,}".replace(",", " ")}</div>
         <div class='kpi-label'>Collèges analysés</div>
         <div class='kpi-delta'>↑ France métro. + DROM</div>
     </div>
@@ -482,7 +482,7 @@ with col2:
 with col3:
     st.markdown(f"""
     <div class='kpi-card'>
-        <div class='kpi-value'>99.94%</div>
+        <div class='kpi-value'>99.9%</div>
         <div class='kpi-label'>Complétude IPS 2023+</div>
         <div class='kpi-delta'>↑ ~4 collèges manquants</div>
     </div>
@@ -615,21 +615,30 @@ with tab1:
         ev = dff.groupby('Session').agg(
             IPS_moy=('IPS', 'mean'), Note_moy=('Note_DNB', 'mean'),
             Taux_moy=('Taux_Reussite', 'mean')
-        ).reset_index()
+        ).reset_index().round(1)
 
         fig_ev = make_subplots(specs=[[{"secondary_y": True}]])
         fig_ev.add_trace(go.Bar(
             x=ev['Session'], y=ev['IPS_moy'], name='IPS moyen',
             marker_color='#1f6feb', opacity=0.8,
+            text=ev['IPS_moy'].map('{:.1f}'.format),
+            textposition='outside',
+            textfont=dict(color='#c9d1d9', size=11),
+            hovertemplate='Session %{x}<br>IPS moyen : %{y:.1f}<extra></extra>',
         ), secondary_y=False)
         fig_ev.add_trace(go.Scatter(
             x=ev['Session'], y=ev['Note_moy'], name='Note DNB moy.',
-            mode='lines+markers', line=dict(color='#f0883e', width=2),
+            mode='lines+markers+text', line=dict(color='#f0883e', width=2.5),
             marker=dict(size=8),
+            text=ev['Note_moy'].map('{:.1f}'.format),
+            textposition='top center',
+            textfont=dict(color='#f0883e', size=11),
+            hovertemplate='Session %{x}<br>Note DNB : %{y:.1f}/20<extra></extra>',
         ), secondary_y=True)
-        fig_ev.update_layout(**PLOTLY_THEME, height=260, legend=dict(orientation='h', y=1.1))
-        fig_ev.update_yaxes(title_text='IPS moyen', secondary_y=False, gridcolor='#21262d')
-        fig_ev.update_yaxes(title_text='Note /20', secondary_y=True, gridcolor='#21262d')
+        fig_ev.update_layout(**PLOTLY_THEME, height=280, legend=dict(orientation='h', y=1.15))
+        fig_ev.update_xaxes(type='category', gridcolor='#21262d')
+        fig_ev.update_yaxes(title_text='IPS moyen', range=[0, 140], secondary_y=False, gridcolor='#21262d')
+        fig_ev.update_yaxes(title_text='Note /20', range=[0, 20], secondary_y=True, gridcolor='#21262d')
         st.plotly_chart(fig_ev, use_container_width=True)
 
 # ════════════════════════════════════════════════════
@@ -660,7 +669,7 @@ with tab2:
         st.markdown("""
         <div class='success-box'>
             ✅ <b>H1 partiellement validée</b> — Les données pré-2022 présentent des lacunes significatives (~6%).
-            La version publique 2023+ atteint une quasi-complétude (99,94%). Seulement ~4 collèges manquants/an.
+            La version publique 2023+ atteint une quasi-complétude (99,9%). Seulement ~4 collèges manquants/an.
         </div>
         """, unsafe_allow_html=True)
 
