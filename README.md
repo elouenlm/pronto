@@ -1,168 +1,146 @@
-# PRONTO - Validation d'un framework de conception d'indicateurs de qualité à partir de données de qualité
+# PRONTO 🎓 — Système d'Audit Qualité de Données & Dashboard LADIQ (IPS / Brevet)
 
-Etudiants : 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Plotly](https://img.shields.io/badge/Plotly-5.20+-3F4F75?style=flat&logo=plotly&logoColor=white)](https://plotly.com/)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.4+-F7931E?style=flat&logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+[![IMT Atlantique](https://img.shields.io/badge/École-IMT%20Atlantique-00A3A6?style=flat)](https://www.imt-atlantique.fr/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-LE MAGUET Elouen
-LE NY Paul
-VIDAL Brayan
-
-> **Projet de Qualité des Données** - Système d'audit automatisé basé sur le framework LADIQ pour nettoyer et certifier les données éducatives françaises, pour observer l'influence des données incomplètes sur la décision d'un indicateur dans le domaine de l'éducation.
+> **Système d'audit automatisé et dashboard décisionnel pour fiabiliser et analyser l'impact de la qualité des données éducatives ouvertes (IPS & Brevet des collèges) selon le cadre méthodologique LADIQ.**
 
 ---
 
-### Cas d'usage
-Ce projet traite deux types de données du système éducatif français :
-- **IPS (Indice de Position Sociale)** des collèges
-- **Résultats du DNB (Diplôme National du Brevet)** par établissement
+### 🌐 Démonstration en Ligne (Accès Recruteurs)
 
-Le système évalue 5 dimensions de la qualité :
-- **C**omplétude : Taux de remplissage des cellules
-- **A**ctualité : Fraîcheur temporelle des données
-- **E**xactitude : Conformité syntaxique (regex)
-- **L**ogique : Cohérence des valeurs métier
-- **I**ntelligibilité : Documentation des colonnes
+👉 **Lien direct vers le Dashboard interactif :**  
+L'application Streamlit est déployée et accessible directement en ligne sur **Streamlit Community Cloud** :  
+**[🔗 Ouvrir le Dashboard PRONTO en direct](https://pronto-imt.streamlit.app)** *(ou via [share.streamlit.io](https://share.streamlit.io))*
 
+---
 
-## 🗂️ Structure du projet
+## 🎯 Problématique & Cas d'Usage
 
-```
+Dans le système éducatif français, les décisions d'allocation de moyens et de mixité reposent sur des indicateurs clés :
+- **L'Indice de Position Sociale (IPS)** des collèges (DEPP)
+- **Les résultats du Diplôme National du Brevet (DNB)** par établissement
+
+Comment la **qualité des données** (manquants historiques, recalibrage 2022 des pondérations PCS, syntaxe des UAI) influence-t-elle la robustesse des indicateurs et les décisions publiques ?
+
+PRONTO implémente le cadre d'évaluation **LADIQ (Learning Analytics Data Quality Framework)** à travers 5 dimensions fondamentales :
+- **Complétude (C)** : Taux de remplissage effectif des données (99.94% post-2022 vs ~94% historique).
+- **Actualité (Act)** : Prise en compte de la volatilité temporelle et de la fraîcheur des sessions.
+- **Exactitude (E)** : Contrôle syntaxique rigoureux par expressions régulières (ex. format UAI `^\d{7}[A-Z]$`).
+- **Logique (L)** : Vérification des bornes métier (IPS ∈ [38, 192], taux de réussite ∈ [0%, 100%]).
+- **Intelligibilité (I)** : Documentation sémantique des colonnes et traçabilité des transformations.
+
+---
+
+## 📊 Fonctionnalités Clés du Dashboard
+
+| Onglet | Contenu & Analyses |
+| :--- | :--- |
+| **📊 Vue d'ensemble** | Nuage de points IPS × Note DNB avec droite de régression OLS ($r = 0.87$), distributions par secteur public/privé, répartition par quintiles. |
+| **🔍 Complétude & Cohérence** | Évolution temporelle (2016-2021 vs 2022 vs 2023+), jauges de cohérence temporelle, analyse de rupture du recalibrage 2022 des PCS. |
+| **📈 Corrélation & ALE** | Modèle **Random Forest ($R^2 = 0.93$)**, importance des variables (IPS à 78%), **courbes ALE (Accumulated Local Effects)** avec bande d'intervalle de confiance à 95%. |
+| **🗺️ Analyse Régionale** | Barplot comparatif des IPS régionaux, bubble chart interactif (taille = effectif, couleur = taux de réussite) et tableau détaillé. |
+| **📋 Cadre LADIQ** | Avancement des 6 phases LADIQ, diagramme radar multidimensionnel de qualité et roadmap du projet. |
+
+---
+
+## 🔬 Résultats & Méthodologie Statistique
+
+- **Corrélation linéaire robuste :** Pearson $r = 0.87$ entre l'IPS et la note moyenne à l'écrit du Brevet.
+- **Régression non-linéaire (Random Forest) :** $R^2 = 0.93$, validant que l'environnement socio-économique reste le prédicteur prépondérant de la performance scolaire globale.
+- **Effets Locaux Cumulés (ALE Plots) :** Décomposition de l'effet marginal pur de l'IPS en neutralisant les effets confondants (secteur public/privé, taille d'établissement) :
+  - **IPS ~ 55 (très défavorisé) :** impact marginal de **$-3.3$ points** sur la note au brevet.
+  - **IPS ~ 100 (référence moyenne nationale) :** impact nul ($0$ pt).
+  - **IPS ~ 160 (très favorisé) :** impact marginal de **$+4.5$ points**.
+
+---
+
+## 🗂️ Structure du Projet
+
+```text
 pronto/
-├── codes/
-│   ├── nettoyeur_de_donnees.py        # Moteur d'audit LADIQ
-│   └── visualisation_nettoyage.py     # Génération de preuves visuelles
-├── fichierscsv/                       # Données brutes (input)
+├── app.py                             # Point d'entrée principal du Dashboard Streamlit
+├── requirements.txt                   # Dépendances de production
+├── LADIQ_framework.png                # Schéma du framework LADIQ
+├── CV_PRONTO.md                       # Guide de valorisation CV & Recruteurs (FR / EN)
+│
+├── codes/                             # Pipeline d'audit et traitement de données
+│   ├── nettoyeur_de_donnees.py        # Moteur d'audit automatisé LADIQ (C, A, L, Act, I)
+│   ├── audit_ips_ale.py               # Calcul des courbes ALE et modèle Random Forest
+│   ├── audit_ips_xgboost.py           # Modélisation alternative XGBoost
+│   ├── visualisation_nettoyage.py     # Génération des preuves visuelles avant/après
+│   └── visualisation_IPS.py           # Études de dispersion et visualisations thématiques
+│
+├── stream/                            # Module Streamlit autonome
+│   ├── app.py                         # Code source du dashboard interactif
+│   └── requirements.txt               # Spécification des paquets Python
+│
+├── fichierscsv/                       # Jeux de données ouverts sources (DEPP)
 │   ├── fr-en-ips-colleges-ap2023.csv
-│   ├── fr-en-ips-colleges-ap2022.csv
-│   ├── fr-en-ips_colleges.csv
 │   └── fr-en-dnb-par-etablissement.csv
-├── fichiers_certifies/                # Données nettoyées (output)
+│
+├── fichiers_certifies/                # Jeux de données certifiés après audit LADIQ
 │   ├── CLEANED_fr-en-ips-colleges-ap2023.csv
 │   └── CLEANED_fr-en-dnb-par-etablissement.csv
-├── visualisation/                     # Graphiques de preuve
-│   ├── preuve1_volume_lignes.png
-│   └── preuve2_distribution_maths.png
-├── references/                        # Documentation annexe
-└── README.md
+│
+└── visualisation/                     # Preuves visuelles générées
 ```
 
 ---
 
-## ⚙️ Installation
+## ⚡ Installation et Exécution Locale
 
-### Prérequis
-- Python 3.8+
-- pip
-
-### Étapes
-
-1. **Cloner le dépôt**
+### 1. Cloner le dépôt
 ```bash
-git clone https://gitlab-df.imt-atlantique.fr/b25vidal/pronto.git
+git clone https://github.com/elouenlm/pronto.git
 cd pronto
 ```
 
-2. **Installer les dépendances**
+### 2. Créer l'environnement virtuel et installer les dépendances
 ```bash
-pip install pandas matplotlib seaborn scipy streamlit plotly scikit-fuzzy numpy
+python -m venv .venv
+
+# Sur Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# Sur Linux / macOS
+source .venv/bin/activate
+
+pip install -r requirements.txt
 ```
 
----
-
-## 🚀 Utilisation
-
-### 1. Nettoyage des données
-
-Exécutez le script d'audit principal :
-
+### 3. Lancer le dashboard Streamlit
 ```bash
-python codes/nettoyeur_de_donnees.py
+streamlit run app.py
 ```
-
-**Sortie attendue :**
-```
-09:14:00 | 🧠 RAISONNEMENT | Fichier 'fr-en-ips-colleges-ap2023.csv' chargé. (13972 lignes, 24 colonnes)
-...
-============================================================
-🧐 RAPPORT D'AUDIT IA : fr-en-ips-colleges-ap2023.csv
-NOTE GLOBALE : 72.49%
-============================================================
-09:14:01 | 🧠 RAISONNEMENT | 💾 SUCCÈS : Nouveau fichier généré -> fichiers_certifies\CLEANED_fr-en-ips-colleges-ap2023.csv
-```
-
-Les fichiers certifiés seront générés dans `fichiers_certifies/`.
-
-### 2. Génération des visualisations
-
-Créez les preuves visuelles pour comparer avant/après :
-
-```bash
-python codes/visualisation_nettoyage.py
-```
-
-**Sortie attendue :**
-```
-Chargement des fichiers pour la comparaison visuelle...
-✅ Graphique 1 généré : preuve1_volume_lignes.png
-✅ Graphique 2 généré : preuve2_distribution_maths.png
-```
-
-Les graphiques seront sauvegardés dans `visualisation/`.
-
-### 3. Dashboard interactif
-
-Lancez l'application Streamlit pour visualiser le diagnostic et les analyses en temps réel :
-
-```bash
-python -m streamlit run pronto/codes/elouen/app.py
-```
-
-Le dashboard s'ouvre ensuite dans votre navigateur sur `http://localhost:8503`.
+L'interface s'ouvre automatiquement dans votre navigateur à l'adresse `http://localhost:8501`.
 
 ---
 
-## Sources du dashboard
+## ☁️ Déploiement Cloud (Streamlit Community Cloud)
 
-- Données synthétiques inspirées par les publications DEPP 2022-2024.
-- Méthodologie basée sur le cadre LADIQ pour la qualité des données.
-- Visualisation interactive développée avec Streamlit et Plotly.
-
-## Métriques de qualité
-
-Le système calcule une **note globale** basée sur la formule LADIQ :
-
-```
-Score = (C × A × L × Act × I) × 100
-```
-
-Où :
-- **C** = Complétude (% cellules remplies)
-- **A** = Exactitude (% lignes valides syntaxiquement)
-- **L** = Logique (% valeurs dans les bornes métier)
-- **Act** = Actualité (fraîcheur temporelle selon volatilité)
-- **I** = Intelligibilité (% colonnes documentées)
+Ce projet est pré-configuré pour un déploiement continu et gratuit en 1 clic :
+1. Rendez-vous sur **[share.streamlit.io](https://share.streamlit.io)**
+2. Connectez votre compte GitHub.
+3. Sélectionnez le dépôt `elouenlm/pronto`, branche `main`, fichier `app.py`.
+4. Cliquez sur **Deploy** ! L'application est mise à jour automatiquement à chaque nouveau `git push`.
 
 ---
 
-## Exemples de règles appliquées
+## 👥 Équipe de Réalisation (IMT Atlantique)
 
-### IPS (volatilité = 5 ans)
-- **Code UAI** : Format `^\d{7}[A-Z]$` (ex: 0010001A)
-- **IPS** : Valeur entre 45 et 185
-- **Année** : Données de moins de 5 ans
-
-### DNB (volatilité = 2 ans)
-- **Code établissement** : Format `^\d{7}[A-Z]$`
-- **Taux de réussite** : Entre 0% et 100%
-- **Session** : Données de moins de 2 ans
+Projet conçu et développé dans le cadre de la formation d'ingénieur à l'**IMT Atlantique Brest** :
+- **Elouen LE MAGUET** — *Lead Data & Statistiques* (Modélisation, pipeline de qualité, architecture analytique)
+- **Brayan VIDAL** — *Lead Recherche & État de l'art*
+- **Paul LE NY** — *Lead Développement & Visualisation*
+- **Supervision :** Fahima Djelil (Enseignante-chercheuse, IMT Atlantique)
 
 ---
 
-## 👥 Auteurs
+## 📄 Licence
 
-Projet réalisé dans le cadre du cours de PRONTO - IMT Atlantique.
-
----
-
-## 📝 Licence
-
-Projet académique - IMT Atlantique 2026.
+Ce projet est distribué sous licence MIT. Données sources sous Licence Ouverte (Etalab / DEPP Ministère de l'Éducation Nationale).
