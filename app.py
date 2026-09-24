@@ -30,6 +30,14 @@ html, body, [class*="css"] {
     color: #e6edf3;
 }
 
+/* Mode épuré recruteur : masquer les menus et footers techniques Streamlit */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+[data-testid="stToolbar"] { visibility: hidden; }
+[data-testid="stDecoration"] { visibility: hidden; }
+[data-testid="stStatusWidget"] { visibility: hidden; }
+
 /* Sidebar */
 [data-testid="stSidebar"] {
     background: #161b22;
